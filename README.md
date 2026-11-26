@@ -71,3 +71,10 @@ Tests: 7 backend (real Postgres+pgvector) and 2 frontend pass.
 3. **Embeddings + pgvector**: text becomes a vector; similar meaning (or, here, similar words) means a small cosine distance; Postgres does the nearest-neighbour search.
 4. **Citations with page numbers** come from storing the page with every chunk at ingest time.
 5. **Evaluation honesty**: Recall@k and MRR measure retrieval; faithfulness needs a judge. My default setup is lexical and extractive, and the numbers above say exactly that.
+
+## Accounts and persistence
+- **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a secret is derived from `DATABASE_URL`.
+- **Persistence:** a signed-in user's data is stored in PostgreSQL under their own account key (`user:<id>`) and is only reachable with their token. New accounts start empty.
+- **Guest demo:** without logging in, "Continue as guest" uses an anonymous browser id with clearly labeled sample data. Guest ids can never collide with or impersonate an account.
+- Tests: `tests/test_auth.py` (register, login, wrong or weak password, duplicate email, bad token, isolation) and `frontend/src/auth.test.tsx`.
+- Not built: email verification, password reset, rate limiting and refresh tokens (listed as next steps).

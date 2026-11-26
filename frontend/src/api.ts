@@ -1,3 +1,4 @@
+import { authHeaders, getToken, logout } from "./auth";
 export const API_BASE: string = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "/api" : "");
 
 export function clientId(): string {
@@ -12,8 +13,10 @@ export function clientId(): string {
 async function req<T>(path: string, method = "GET", body?: unknown, form?: FormData): Promise<T> {
   const headers: Record<string, string> = { "X-Client-Id": clientId() };
   if (body) headers["Content-Type"] = "application/json";
+  Object.assign(headers, authHeaders());
   const res = await fetch(API_BASE + path, { method, headers, body: form ?? (body ? JSON.stringify(body) : undefined) });
   if (!res.ok) {
+    if (res.status === 401 && getToken()) logout();
     let msg = res.statusText;
     try { const j = await res.json(); msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch { /* keep */ }
     throw new Error(msg);
