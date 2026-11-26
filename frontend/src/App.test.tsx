@@ -20,16 +20,16 @@ test("demo load, ask, and see page citation", async () => {
   mockFetch();
   render(<App />);
   await userEvent.click(await screen.findByText(/Load sample documents/));
-  await screen.findByText(/sample-handbook.pdf/);
+  await waitFor(() => expect(screen.getByLabelText("Question")).toHaveAttribute("placeholder", "Ask about your documents"));
   await userEvent.type(screen.getByLabelText("Question"), "status code?");
-  await userEvent.click(screen.getByText("Ask"));
+  await userEvent.click(screen.getByRole("button", { name: "Ask" }));
   await waitFor(() => expect(screen.getByText(/It returns 422/)).toBeInTheDocument());
-  expect(screen.getByText(/sample-handbook.pdf, page 3/)).toBeInTheDocument();
+  expect(screen.getAllByText(/sample-handbook.pdf, page 3/).length).toBeGreaterThan(0);
 });
 
 test("ask disabled with no documents", async () => {
   mockFetch();
   render(<App />);
   await screen.findByText(/New here/);
-  expect(screen.getByText("Ask")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
 });

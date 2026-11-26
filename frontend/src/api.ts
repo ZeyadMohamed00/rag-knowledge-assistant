@@ -24,12 +24,14 @@ async function req<T>(path: string, method = "GET", body?: unknown, form?: FormD
 export type Doc = { id: number; filename: string; pages: number; chunks: number };
 export type Citation = { document: string; page: number; snippet: string };
 export type Msg = { role: "user" | "assistant"; content: string; citations: Citation[]; mode: string };
+export type Hit = { chunk_id: number; document: string; page: number; text: string; score: number };
 export type ChatRef = { id: number; title: string };
 
 export const api = {
   docs: () => req<Doc[]>("/documents"),
   upload: (f: File) => { const fd = new FormData(); fd.append("file", f); return req<Doc>("/documents", "POST", undefined, fd); },
   remove: (id: number) => req<void>(`/documents/${id}`, "DELETE"),
+  search: (question: string, k = 6) => req<Hit[]>("/search", "POST", { question, k }),
   seed: () => req<{ seeded: boolean }>("/demo/seed", "POST", {}),
   chats: () => req<ChatRef[]>("/chats"),
   newChat: () => req<ChatRef>("/chats", "POST", {}),
