@@ -1,0 +1,17 @@
+body{font-family:system-ui,sans-serif;margin:0;color:#222}
+.layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
+aside{background:#f4f4f6;padding:1rem;overflow:auto}
+aside h1{font-size:1.2rem;margin:.2rem 0}
+main{padding:1rem 1.5rem;display:flex;flex-direction:column}
+ul{padding-left:1rem}li{margin:.3rem 0}
+button,input{padding:.45rem;margin:.2rem 0}
+.banner{background:#eef;border-radius:8px;padding:.6rem;margin:.6rem 0}
+.upload{display:block;margin:.4rem 0}
+.thread{flex:1;overflow:auto}
+.msg{padding:.6rem .8rem;border-radius:8px;margin:.5rem 0;max-width:720px}
+.msg.user{background:#e6f0ff;margin-left:auto}.msg.assistant{background:#f6f6f6}
+.cites{font-size:.9rem}
+.askbar{display:flex;gap:.5rem;margin-top:.5rem}.askbar input{flex:1}
+.muted{color:#667;font-size:12px}.err{color:#b00}
+.link{background:none;border:none;color:#0645ad;cursor:pointer;padding:0;font-size:.95rem;text-align:left}.link.on{font-weight:700}
+@media(max-width:760px){.layout{grid-template-columns:1fr}}

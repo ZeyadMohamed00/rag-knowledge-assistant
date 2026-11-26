@@ -1,26 +1,202 @@
 [
- {"q":"Why can't Python threads speed up CPU-heavy code?","doc":"python-basics"},
- {"q":"What is the difference between a list and a tuple?","doc":"python-basics"},
- {"q":"How do I isolate project dependencies?","doc":"virtualenvs"},
- {"q":"Should the virtual environment folder be committed?","doc":"virtualenvs"},
- {"q":"What status code does FastAPI return when validation fails?","doc":"fastapi-intro"},
- {"q":"Which server runs FastAPI apps?","doc":"fastapi-intro"},
- {"q":"What does HTTP 403 mean versus 401?","doc":"rest-apis"},
- {"q":"Which HTTP method replaces a resource entirely?","doc":"rest-apis"},
- {"q":"How do you prevent SQL injection?","doc":"sql-databases"},
- {"q":"What does a foreign key do?","doc":"sql-databases"},
- {"q":"What is the difference between merge and rebase?","doc":"git-workflow"},
- {"q":"How can I temporarily set aside uncommitted changes?","doc":"git-workflow"},
- {"q":"Why copy requirements before source in a Dockerfile?","doc":"docker-basics"},
- {"q":"How do volumes help containers?","doc":"docker-basics"},
- {"q":"What is overfitting and how is it reduced?","doc":"machine-learning"},
- {"q":"Define precision and recall","doc":"machine-learning"},
- {"q":"What trade-off exists between small and large chunks?","doc":"rag-concepts"},
- {"q":"What is hybrid search?","doc":"rag-concepts"},
- {"q":"How should passwords be stored?","doc":"authentication"},
- {"q":"Why are JWTs hard to revoke?","doc":"authentication"},
- {"q":"What are pytest fixtures?","doc":"testing-pytest"},
- {"q":"What does parametrize do?","doc":"testing-pytest"},
- {"q":"What does an index cost in a database?","doc":"sql-databases"},
- {"q":"What is Docker Compose used for?","doc":"docker-basics"}
+ {
+  "q": "Why can't Python threads speed up CPU-heavy code?",
+  "doc": "python-basics"
+ },
+ {
+  "q": "What is the difference between a list and a tuple?",
+  "doc": "python-basics"
+ },
+ {
+  "q": "How do I isolate project dependencies?",
+  "doc": "virtualenvs"
+ },
+ {
+  "q": "Should the virtual environment folder be committed?",
+  "doc": "virtualenvs"
+ },
+ {
+  "q": "What status code does FastAPI return when validation fails?",
+  "doc": "fastapi-intro"
+ },
+ {
+  "q": "Which server runs FastAPI apps?",
+  "doc": "fastapi-intro"
+ },
+ {
+  "q": "What does HTTP 403 mean versus 401?",
+  "doc": "rest-apis"
+ },
+ {
+  "q": "Which HTTP method replaces a resource entirely?",
+  "doc": "rest-apis"
+ },
+ {
+  "q": "How do you prevent SQL injection?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "What does a foreign key do?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "What is the difference between merge and rebase?",
+  "doc": "git-workflow"
+ },
+ {
+  "q": "How can I temporarily set aside uncommitted changes?",
+  "doc": "git-workflow"
+ },
+ {
+  "q": "Why copy requirements before source in a Dockerfile?",
+  "doc": "docker-basics"
+ },
+ {
+  "q": "How do volumes help containers?",
+  "doc": "docker-basics"
+ },
+ {
+  "q": "What is overfitting and how is it reduced?",
+  "doc": "machine-learning"
+ },
+ {
+  "q": "Define precision and recall",
+  "doc": "machine-learning"
+ },
+ {
+  "q": "What trade-off exists between small and large chunks?",
+  "doc": "rag-concepts"
+ },
+ {
+  "q": "What is hybrid search?",
+  "doc": "rag-concepts"
+ },
+ {
+  "q": "How should passwords be stored?",
+  "doc": "authentication"
+ },
+ {
+  "q": "Why are JWTs hard to revoke?",
+  "doc": "authentication"
+ },
+ {
+  "q": "What are pytest fixtures?",
+  "doc": "testing-pytest"
+ },
+ {
+  "q": "What does parametrize do?",
+  "doc": "testing-pytest"
+ },
+ {
+  "q": "What does an index cost in a database?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "What is Docker Compose used for?",
+  "doc": "docker-basics"
+ },
+ {
+  "q": "Is Python statically typed?",
+  "doc": "python-basics"
+ },
+ {
+  "q": "How does Python mark blocks of code?",
+  "doc": "python-basics"
+ },
+ {
+  "q": "What data structure gives fast key lookup?",
+  "doc": "python-basics"
+ },
+ {
+  "q": "What file lets another developer recreate my environment?",
+  "doc": "virtualenvs"
+ },
+ {
+  "q": "Which module creates a virtual environment?",
+  "doc": "virtualenvs"
+ },
+ {
+  "q": "How does FastAPI generate interactive documentation?",
+  "doc": "fastapi-intro"
+ },
+ {
+  "q": "What is dependency injection used for in FastAPI?",
+  "doc": "fastapi-intro"
+ },
+ {
+  "q": "Which status code means a resource was created?",
+  "doc": "rest-apis"
+ },
+ {
+  "q": "Which HTTP methods are idempotent?",
+  "doc": "rest-apis"
+ },
+ {
+  "q": "Should a GET request change data?",
+  "doc": "rest-apis"
+ },
+ {
+  "q": "What is a transaction?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "What does a primary key do?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "How do joins combine tables?",
+  "doc": "sql-databases"
+ },
+ {
+  "q": "What is a pull request?",
+  "doc": "git-workflow"
+ },
+ {
+  "q": "What should a good commit message explain?",
+  "doc": "git-workflow"
+ },
+ {
+  "q": "What is the difference between an image and a container?",
+  "doc": "docker-basics"
+ },
+ {
+  "q": "How do I make a service reachable from the host?",
+  "doc": "docker-basics"
+ },
+ {
+  "q": "Why split data into training and test sets?",
+  "doc": "machine-learning"
+ },
+ {
+  "q": "What does cross-validation provide?",
+  "doc": "machine-learning"
+ },
+ {
+  "q": "What is supervised learning?",
+  "doc": "machine-learning"
+ },
+ {
+  "q": "What is hallucination in a language model?",
+  "doc": "rag-concepts"
+ },
+ {
+  "q": "How does BM25 rank chunks?",
+  "doc": "rag-concepts"
+ },
+ {
+  "q": "Why does citing retrieved chunks help?",
+  "doc": "rag-concepts"
+ },
+ {
+  "q": "What is the difference between authentication and authorization?",
+  "doc": "authentication"
+ },
+ {
+  "q": "Why use HTTPS with tokens?",
+  "doc": "authentication"
+ },
+ {
+  "q": "Why mock a network call in tests?",
+  "doc": "testing-pytest"
+ }
 ]

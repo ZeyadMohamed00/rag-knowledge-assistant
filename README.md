@@ -1,50 +1,56 @@
-# RAG Knowledge Assistant
+# Knowledge Assistant (RAG)
 
-Ask questions over a folder of documents. The system splits documents into chunks, retrieves the most relevant ones, and answers **with citations** (`[doc#chunk]`). Says "I don't know" when nothing relevant is found.
+Upload PDF / DOCX / TXT files, ask questions, get answers with citations (document + page number), saved chats. FastAPI + React/TypeScript + PostgreSQL with pgvector.
 
-> Honest scope
-> - No LLM is required. By default answers are **extractive** (best-matching sentences from retrieved chunks). If `LLM_API_KEY` is set, an OpenAI-compatible endpoint writes the answer from the retrieved chunks only. **The LLM path was written but not run** (no API key was available), so treat it as untested.
-> - Retrieval is keyword/TF-IDF based (BM25 written from scratch + scikit-learn TF-IDF). There are **no embeddings** yet.
-> - The Docker files were **not built or run** (Docker was unavailable when this was written). Tests and the API were run locally on Python 3.10.
+**Live demo (free tier):** https://rag-web-puce.vercel.app  (click **Load sample documents (demo)**, then ask)
+API + docs: https://rag-api-delta.vercel.app/docs
+
+![chat with page citation](docs/screenshot-chat.png)
+
+## What it does
+1. **Ingest**: extract text per page (pypdf for PDF, python-docx for DOCX), split into ~500-character sentence chunks with 1-sentence overlap, embed each chunk, store in `rag_chunks` (pgvector `vector(384)`).
+2. **Retrieve**: embed the question, cosine-distance search in pgvector, filtered to the visitor's own documents.
+3. **Answer**: with `OPENAI_API_KEY` set, an LLM answers only from the numbered context and cites `[n]`. Without a key, an **extractive** answerer returns the most relevant sentences with their citations. The UI shows which mode produced each answer.
+4. **Saved chats**: messages and citations are stored per visitor (anonymous client id kept in the browser, no accounts).
+
+## Stack
+FastAPI, SQLAlchemy, PostgreSQL + pgvector, React + TypeScript (Vite), pypdf, python-docx, pytest + Vitest. Docker files are provided. LlamaIndex/LangChain are not used: the pipeline is ~150 lines of plain code so every step is visible and explainable.
+
+## Honest status
+- **Embeddings are lexical by default** (`EMBEDDING_PROVIDER=hash`: hashed word and bigram features, 384 dims). It runs anywhere with no model download, but it matches shared words, not paraphrases. Semantic embeddings are implemented behind `EMBEDDING_PROVIDER=openai` and have **not been run** (no API key here). Never mix providers in one database.
+- **The LLM path is written but not run** (no API key here). The deployed demo uses the extractive answerer.
+- **DOCX pages are approximate** (a new "page" every ~3000 characters) because .docx has no fixed pagination. PDFs use real pages. Scanned PDFs need OCR, which is not supported.
+- Visitor limits: 10 documents each, 4 MB per file. The live demo shares a free Neon database (tables prefixed `rag_`).
+- Docker files are not verified (no Docker in the build environment).
+
+## Evaluation (real run, `python eval/run_eval.py`)
+50 reference questions over the 11-page sample handbook; gold = the page holding the answer. Embedder: hash. Answerer: extractive. Results saved in `eval/results.json`.
+
+| Metric | Value |
+|---|---|
+| Retrieval Recall@1 | 0.84 |
+| Retrieval Recall@3 | 0.94 |
+| Retrieval Recall@5 | 0.98 |
+| MRR | 0.892 |
+| Faithfulness (lexical proxy) | 0.967 |
+
+Caveats: the questions were written by the project author from the same documents, so this is not an independent benchmark. **Faithfulness here is a lexical proxy** (share of answer sentences whose words appear in the retrieved context), not an LLM judge. An extractive answerer scores high on it by construction, so it only becomes informative with the LLM path. The one miss at k=5 is a paraphrase ("fast key lookup" vs "average constant time lookup"), the expected weakness of lexical embeddings.
 
 ## Run
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pytest -q                                   # 11 tests
-python eval/run_eval.py                     # retrieval metrics
-python -m rag.cli data/docs "What does a foreign key do?"
-uvicorn rag.api:app --reload                # POST /ask {"question": "..."}
+docker compose up --build            # web on :8000 (API) + Postgres with pgvector (unverified here)
+# or locally, with a pgvector-enabled Postgres:
+pip install -r requirements.txt pgserver reportlab
+DATABASE_URL=postgresql+psycopg2://user:pw@host/db uvicorn app.main:app
+cd frontend && npm i && npm run dev
+pytest                               # uses an embedded real Postgres+pgvector (pgserver)
+python eval/run_eval.py
 ```
-Put your own `.txt`/`.md` files in `data/docs` (or set `DOCS_DIR`).
+Tests: 7 backend (real Postgres+pgvector) and 2 frontend pass.
 
-## Architecture
-```
-docs -> chunking (60 words, 15 overlap) -> index: BM25 + TF-IDF -> hybrid score
-question -> retrieve top-k chunks -> generate (extractive | LLM) -> answer + sources
-```
-Files: `rag/chunking.py`, `rag/retrieval.py`, `rag/generate.py`, `rag/store.py`, `rag/api.py`, `eval/run_eval.py`.
-
-## Evaluation (real run of `python eval/run_eval.py`)
-12 short docs (22 chunks), 24 questions, hit = a top-k chunk is from the expected document.
-
-| mode | hit@1 | hit@3 | MRR |
-|---|---|---|---|
-| bm25 | 0.96 | 1.00 | 0.979 |
-| tfidf | 0.96 | 1.00 | 0.979 |
-| hybrid | 0.96 | 1.00 | 0.979 |
-
-**Read this carefully:** the corpus and the questions were written by the same person, the corpus is tiny, and questions share vocabulary with the docs. So all modes tie and the numbers are optimistic. This shows the pipeline works, it does **not** prove it is good on real data. Next step: a larger real corpus and paraphrased questions, plus embeddings to handle synonyms.
-
-## How it works / key decisions
-1. **Chunking**: fixed windows of words with overlap, so a fact split at a boundary is still found. Trade-off: small chunks are precise but lose context; large chunks keep context but add noise.
-2. **BM25**: score = sum over query terms of `idf * tf*(k1+1) / (tf + k1*(1-b+b*len/avglen))`. Rare words count more, and long chunks are not unfairly favoured.
-3. **TF-IDF cosine** with bigrams catches phrases. **Hybrid** averages max-normalised BM25 and TF-IDF scores.
-4. **Grounding**: answers cite chunk ids; if retrieval returns nothing the system refuses instead of guessing. This is the main defence against hallucination.
-5. **Pluggable generation**: `answer()` switches between extractive and LLM, so the retrieval part is testable with no API.
-
-## Interview questions to prepare
-Why chunk with overlap? What does BM25's `b` do? Keyword vs embedding search trade-offs? How would you measure answer quality (faithfulness vs retrieval hit rate)? What would break at 1M documents (need an ANN index / vector DB)?
-
-## CI
-A GitHub Actions workflow is in `ci/github-actions-ci.yml`. Move it to `.github/workflows/ci.yml` to enable it. It is not enabled because the push token had no `workflow` scope, and it has not been run on GitHub.
+## 5 things to understand to explain this project
+1. **RAG** = retrieve relevant chunks first, then answer only from them, so answers can be checked against sources.
+2. **Chunking trade-off**: small chunks are precise but lose context, large ones keep context but add noise. I use ~500 chars with sentence overlap so facts are not cut in half.
+3. **Embeddings + pgvector**: text becomes a vector; similar meaning (or, here, similar words) means a small cosine distance; Postgres does the nearest-neighbour search.
+4. **Citations with page numbers** come from storing the page with every chunk at ingest time.
+5. **Evaluation honesty**: Recall@k and MRR measure retrieval; faithfulness needs a judge. My default setup is lexical and extractive, and the numbers above say exactly that.
