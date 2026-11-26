@@ -1,5 +1,7 @@
 # Knowledge Assistant (RAG)
 
+[![CI](https://github.com/ZeyadMohamed00/rag-knowledge-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeyadMohamed00/rag-knowledge-assistant/actions/workflows/ci.yml)
+
 Upload PDF / DOCX / TXT files, ask questions, get answers with citations (document + page number), saved chats. FastAPI + React/TypeScript + PostgreSQL with pgvector.
 
 **Live demo (free tier):** https://rag-web-puce.vercel.app  (click **Load sample documents (demo)**, then ask)
