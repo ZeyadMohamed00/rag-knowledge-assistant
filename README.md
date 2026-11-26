@@ -5,7 +5,9 @@ Upload PDF / DOCX / TXT files, ask questions, get answers with citations (docume
 **Live demo (free tier):** https://rag-web-puce.vercel.app  (click **Load sample documents (demo)**, then ask)
 API + docs: https://rag-api-delta.vercel.app/docs
 
-![chat with page citation](docs/screenshot-chat.png)
+![chat, first view with sample questions](docs/screenshot-chat.png)
+
+Pages: Chat, Documents, Retrieval explorer, Evaluation (from real eval runs) and How it works, with dark mode.
 
 ## What it does
 1. **Ingest**: extract text per page (pypdf for PDF, python-docx for DOCX), split into ~500-character sentence chunks with 1-sentence overlap, embed each chunk, store in `rag_chunks` (pgvector `vector(384)`).
