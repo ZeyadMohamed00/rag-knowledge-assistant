@@ -1,15 +1,26 @@
-import json, os, re
+import os
+import re
+
 from sqlalchemy import select
+
 from .db import Chunk, Document
-from .embed import embed, _tok, _stem
+from .embed import _stem, _tok, embed
 
 
 def retrieve(db, client_id: str, question: str, k: int = 5):
     qv = embed([question])[0]
     dist = Chunk.embedding.cosine_distance(qv)
-    rows = db.execute(select(Chunk, Document.filename, dist.label("d")).join(Document, Document.id == Chunk.document_id)
-                      .where(Chunk.client_id == client_id).order_by(dist).limit(k)).all()
-    return [{"chunk_id": c.id, "document": fn, "page": c.page, "text": c.text, "score": round(1 - d, 4)} for c, fn, d in rows]
+    rows = db.execute(
+        select(Chunk, Document.filename, dist.label("d"))
+        .join(Document, Document.id == Chunk.document_id)
+        .where(Chunk.client_id == client_id)
+        .order_by(dist)
+        .limit(k)
+    ).all()
+    return [
+        {"chunk_id": c.id, "document": fn, "page": c.page, "text": c.text, "score": round(1 - d, 4)}
+        for c, fn, d in rows
+    ]
 
 
 def _sentences(t):
@@ -28,7 +39,8 @@ def extractive_answer(question: str, hits: list[dict]) -> tuple[str, list[dict]]
     seen, uniq = set(), []
     for c in cands:  # overlapping chunks repeat sentences
         if c[1] not in seen:
-            seen.add(c[1]); uniq.append(c)
+            seen.add(c[1])
+            uniq.append(c)
     cands = uniq
     chosen = [c for c in cands[:2] if c[0] > 0 and c[0] >= 0.6 * cands[0][0]]
     if not chosen:
@@ -45,16 +57,38 @@ def extractive_answer(question: str, hits: list[dict]) -> tuple[str, list[dict]]
 
 def llm_answer(question: str, hits: list[dict]) -> tuple[str, list[dict]]:
     import httpx
-    ctx = "\n\n".join(f"[{i+1}] ({h['document']}, page {h['page']}) {h['text']}" for i, h in enumerate(hits))
-    r = httpx.post("https://api.openai.com/v1/chat/completions", timeout=60,
-                   headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
-                   json={"model": os.getenv("LLM_MODEL", "gpt-4o-mini"), "temperature": 0,
-                         "messages": [{"role": "system", "content": "Answer ONLY from the numbered context. Cite sources like [1]. If the context does not contain the answer, say you cannot find it."},
-                                      {"role": "user", "content": f"Context:\n{ctx}\n\nQuestion: {question}"}]})
+
+    ctx = "\n\n".join(
+        f"[{i + 1}] ({h['document']}, page {h['page']}) {h['text']}" for i, h in enumerate(hits)
+    )
+    r = httpx.post(
+        "https://api.openai.com/v1/chat/completions",
+        timeout=60,
+        headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
+        json={
+            "model": os.getenv("LLM_MODEL", "gpt-4o-mini"),
+            "temperature": 0,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Answer ONLY from the numbered context. Cite sources like [1]. If the context does not contain the answer, say you cannot find it.",
+                },
+                {"role": "user", "content": f"Context:\n{ctx}\n\nQuestion: {question}"},
+            ],
+        },
+    )
     r.raise_for_status()
     text = r.json()["choices"][0]["message"]["content"]
     used = sorted({int(n) for n in re.findall(r"\[(\d+)\]", text) if 0 < int(n) <= len(hits)})
-    cites = [{"document": hits[i - 1]["document"], "page": hits[i - 1]["page"], "snippet": hits[i - 1]["text"][:200], "n": i} for i in used]
+    cites = [
+        {
+            "document": hits[i - 1]["document"],
+            "page": hits[i - 1]["page"],
+            "snippet": hits[i - 1]["text"][:200],
+            "n": i,
+        }
+        for i in used
+    ]
     return text, cites
 
 

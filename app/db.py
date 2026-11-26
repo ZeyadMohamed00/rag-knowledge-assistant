@@ -1,7 +1,8 @@
 import os
-from sqlalchemy import create_engine, text, String, Integer, Text, ForeignKey, DateTime, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker, relationship
+
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, create_engine, func, text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker
 
 DIM = 384
 url = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres@localhost/rag")
@@ -26,7 +27,9 @@ class Document(Base):
 class Chunk(Base):
     __tablename__ = "rag_chunks"
     id: Mapped[int] = mapped_column(primary_key=True)
-    document_id: Mapped[int] = mapped_column(ForeignKey("rag_documents.id", ondelete="CASCADE"), index=True)
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("rag_documents.id", ondelete="CASCADE"), index=True
+    )
     client_id: Mapped[str] = mapped_column(String(64), index=True)
     page: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
@@ -40,7 +43,9 @@ class Chat(Base):
     client_id: Mapped[str] = mapped_column(String(64), index=True)
     title: Mapped[str] = mapped_column(String(200))
     created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
-    messages: Mapped[list["Message"]] = relationship(cascade="all, delete-orphan", order_by="Message.id")
+    messages: Mapped[list["Message"]] = relationship(
+        cascade="all, delete-orphan", order_by="Message.id"
+    )
 
 
 class Message(Base):

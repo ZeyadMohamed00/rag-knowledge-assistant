@@ -9,6 +9,21 @@ API + docs: https://rag-api-delta.vercel.app/docs
 
 Pages: Chat, Documents, Retrieval explorer, Evaluation (from real eval runs) and How it works, with dark mode.
 
+## System overview
+```mermaid
+flowchart LR
+  UP[Upload PDF / DOCX / TXT] --> EX[Extract text per page]
+  EX --> CH[Chunk with page metadata]
+  CH --> EM[Embed]
+  EM --> V[(PostgreSQL + pgvector)]
+  Q[Question] --> R[Retrieve top-k chunks]
+  V --> R
+  R --> AN[Answerer: extractive or LLM]
+  AN --> C[Answer with document + page citations]
+```
+
+**Tech stack:** FastAPI, PostgreSQL, pgvector, React, TypeScript, pypdf, python-docx, Pytest, Vitest, Docker.
+
 ## What it does
 1. **Ingest**: extract text per page (pypdf for PDF, python-docx for DOCX), split into ~500-character sentence chunks with 1-sentence overlap, embed each chunk, store in `rag_chunks` (pgvector `vector(384)`).
 2. **Retrieve**: embed the question, cosine-distance search in pgvector, filtered to the visitor's own documents.

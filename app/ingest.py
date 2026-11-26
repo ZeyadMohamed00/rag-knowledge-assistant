@@ -1,8 +1,12 @@
-import io, re
-from pypdf import PdfReader
-from docx import Document as Docx
+import io
+import re
 
-DOCX_PAGE_CHARS = 3000  # .docx has no fixed pages: "page" = every ~3000 characters (approximate, documented)
+from docx import Document as Docx
+from pypdf import PdfReader
+
+DOCX_PAGE_CHARS = (
+    3000  # .docx has no fixed pages: "page" = every ~3000 characters (approximate, documented)
+)
 
 
 def extract_pages(filename: str, data: bytes) -> list[str]:
@@ -14,7 +18,8 @@ def extract_pages(filename: str, data: bytes) -> list[str]:
         pages, cur = [], ""
         for para in text.split("\n"):
             if len(cur) + len(para) > DOCX_PAGE_CHARS and cur:
-                pages.append(cur.strip()); cur = ""
+                pages.append(cur.strip())
+                cur = ""
             cur += para + "\n"
         return pages + [cur.strip()]
     if name.endswith((".txt", ".md")):

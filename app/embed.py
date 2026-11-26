@@ -6,11 +6,17 @@ LEXICAL embedding: it matches shared words, not paraphrases. Set EMBEDDING_PROVI
 for semantic embeddings (text-embedding-3-small, truncated to 384 dims via the `dimensions` parameter).
 Never mix providers inside one database: vectors from different providers are not comparable.
 """
-import hashlib, os, re
+
+import hashlib
+import os
+import re
+
 import numpy as np
 
 DIM = 384
-STOP = set("a an the of to in on for and or is are was were be by with as at it its this that from how what why which does do can i you should".split())
+STOP = set(
+    "a an the of to in on for and or is are was were be by with as at it its this that from how what why which does do can i you should".split()
+)
 
 
 def _tok(s: str) -> list[str]:
@@ -42,9 +48,13 @@ def provider() -> str:
 def embed(texts: list[str]) -> list[list[float]]:
     if provider() == "openai":
         import httpx
-        r = httpx.post("https://api.openai.com/v1/embeddings", timeout=60,
-                       headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
-                       json={"model": "text-embedding-3-small", "input": texts, "dimensions": DIM})
+
+        r = httpx.post(
+            "https://api.openai.com/v1/embeddings",
+            timeout=60,
+            headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
+            json={"model": "text-embedding-3-small", "input": texts, "dimensions": DIM},
+        )
         r.raise_for_status()
         return [d["embedding"] for d in r.json()["data"]]
     return [hash_embed(t) for t in texts]
