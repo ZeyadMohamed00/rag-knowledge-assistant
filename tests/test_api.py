@@ -32,8 +32,8 @@ def test_requires_client_id():
 
 
 def test_seed_search_and_page_citation():
-    assert c.post("/demo/seed", headers=H).json()["seeded"] is True
-    assert c.post("/demo/seed", headers=H).json()["seeded"] is False
+    assert c.post("/examples/handbook", headers=H).json()["seeded"] is True
+    assert c.post("/examples/handbook", headers=H).json()["seeded"] is False
     docs = c.get("/documents", headers=H).json()
     assert docs[0]["pages"] == 11
     chat = c.post("/chats", headers=H).json()
@@ -96,7 +96,7 @@ def test_upload_txt_docx_and_reject_bad():
 
 def test_answer_has_no_duplicate_sentences():
     H3 = {"X-Client-Id": "dedupe-0004"}
-    c.post("/demo/seed", headers=H3)
+    c.post("/examples/handbook", headers=H3)
     chat = c.post("/chats", headers=H3).json()
     a = c.post(
         f"/chats/{chat['id']}/ask", headers=H3, json={"question": "Why are JWTs hard to revoke?"}

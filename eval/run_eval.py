@@ -30,7 +30,7 @@ names = [os.path.basename(f)[:-4] for f in sorted(glob.glob(f"{root}/data/docs/*
 qs = json.load(open(f"{root}/eval/questions.json"))
 D.init()
 with D.Session() as db:
-    add_document(db, "evalclient", "sample-handbook.pdf", SAMPLE.read_bytes())
+    add_document(db, "evalclient", "engineering-handbook.pdf", SAMPLE.read_bytes())
     ks = (1, 3, 5)
     hit = {k: 0 for k in ks}
     rr = 0

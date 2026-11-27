@@ -4,7 +4,7 @@
 
 Upload PDF / DOCX / TXT files, ask questions, get answers with citations (document + page number), saved chats. FastAPI + React/TypeScript + PostgreSQL with pgvector.
 
-**Live demo (free tier):** https://rag-web-puce.vercel.app  (click **Load sample documents (demo)**, then ask)
+**Live app (free tier):** https://rag-web-puce.vercel.app  (click **Explore without signing up**, then **Load the example handbook**, and ask)
 API + docs: https://rag-api-delta.vercel.app/docs
 
 ![chat, first view with sample questions](docs/screenshot-chat.png)

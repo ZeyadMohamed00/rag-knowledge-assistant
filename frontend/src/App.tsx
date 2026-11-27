@@ -45,7 +45,7 @@ function Main() {
   };
   const submit = (e: FormEvent) => { e.preventDefault(); ask(q); };
   const upload = (f: File) => guard(async () => { await api.upload(f); await refresh(); toast(`Uploaded ${f.name}`, "ok"); });
-  const seed = () => guard(async () => { await api.seed(); await refresh(); toast("Sample handbook loaded", "ok"); });
+  const seed = () => guard(async () => { await api.seed(); await refresh(); toast("Example handbook loaded", "ok"); });
   const chunks = docs.reduce((a, d) => a + d.chunks, 0);
 
   return (
@@ -62,8 +62,8 @@ function Main() {
       {page === "chat" && (
         <>
           {!loaded ? <Skeleton /> : docs.length === 0 && (
-            <div className="card row"><div><h3 style={{ margin: 0 }}>New here?</h3><p className="muted">Load a synthetic 11-page handbook (Python, Git, Docker, SQL...) or upload your own PDF, DOCX or TXT. Not real data.</p></div>
-              <button className="btn primary sp" onClick={seed} disabled={busy}>Load sample documents (demo)</button></div>
+            <div className="card row"><div><h3 style={{ margin: 0 }}>New here?</h3><p className="muted">Load the included 11-page engineering handbook (Python, Git, Docker, SQL...) or upload your own PDF, DOCX or TXT.</p></div>
+              <button className="btn primary sp" onClick={seed} disabled={busy}>Load the example handbook</button></div>
           )}
           <div className="chat" aria-live="polite">
             {msgs.length === 0 && loaded && (
@@ -109,7 +109,7 @@ function DocsPage({ docs, chunks, busy, onUpload, onSeed, onDelete }: { docs: Do
         <input ref={input} type="file" aria-label="Upload document" hidden accept=".pdf,.docx,.txt,.md" onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
       </div>
       <div className="card tw">
-        {docs.length === 0 ? <Empty icon="▤" title="No documents yet" hint="Upload a file or load the sample handbook."><button className="btn primary" style={{ marginTop: 10 }} onClick={onSeed} disabled={busy}>Load sample documents (demo)</button></Empty> : (
+        {docs.length === 0 ? <Empty icon="▤" title="No documents yet" hint="Upload a file or load the example handbook."><button className="btn primary" style={{ marginTop: 10 }} onClick={onSeed} disabled={busy}>Load the example handbook</button></Empty> : (
           <table className="t"><thead><tr><th>File</th><th>Pages</th><th>Chunks</th><th /></tr></thead><tbody>
             {docs.map((d) => <tr key={d.id}><td><b>{d.filename}</b></td><td>{d.pages}</td><td>{d.chunks}</td><td><button className="btn sm danger" onClick={() => onDelete(d)}>Delete</button></td></tr>)}</tbody></table>
         )}
@@ -139,7 +139,7 @@ function EvalPage() {
   const pct = (v: number) => `${Math.round(v * 1000) / 10}%`;
   return (
     <>
-      <div className="page-h"><div><h1>Evaluation</h1><p>{r.questions} reference questions, run offline with the bundled sample handbook ({r.embedder}, {r.answerer} answerer).</p></div></div>
+      <div className="page-h"><div><h1>Evaluation</h1><p>{r.questions} reference questions, run offline against the included handbook ({r.embedder}, {r.answerer} answerer).</p></div></div>
       <div className="grid g4"><Stat label="Recall@1" value={pct(r["recall@1"])} /><Stat label="Recall@3" value={pct(r["recall@3"])} /><Stat label="Recall@5" value={pct(r["recall@5"])} /><Stat label="MRR" value={r.mrr.toFixed(3)} /></div>
       <div className="grid g2">
         <div className="card"><h3>Retrieval recall by k</h3><BarChart max={1} data={[{ label: "@1", value: r["recall@1"] }, { label: "@3", value: r["recall@3"] }, { label: "@5", value: r["recall@5"] }]} /><div className="row small muted" style={{ justifyContent: "space-around" }}><span>k=1</span><span>k=3</span><span>k=5</span></div></div>
@@ -156,7 +156,7 @@ function About() {
     <>
       <div className="page-h"><div><h1>How it works</h1><p>A retrieval-augmented generation pipeline, built from scratch on FastAPI, PostgreSQL and pgvector.</p></div></div>
       <div className="grid g3">{steps.map(([t, d]) => <div key={t} className="card"><h3>{t}</h3><p className="muted">{d}</p></div>)}</div>
-      <div className="card"><h3>Live demo notes</h3><p className="muted">Free-tier hosting: the first request can be slow. Data is per browser. The demo runs without an LLM key, so answers are extractive.</p></div>
+      <div className="card"><h3>Good to know</h3><p className="muted">Free-tier hosting: the first request can be slow. Without an LLM key configured, answers are extractive: the best matching sentences from your documents, quoted with their source.</p></div>
     </>
   );
 }

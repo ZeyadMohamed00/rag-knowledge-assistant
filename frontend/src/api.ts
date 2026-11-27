@@ -35,7 +35,7 @@ export const api = {
   upload: (f: File) => { const fd = new FormData(); fd.append("file", f); return req<Doc>("/documents", "POST", undefined, fd); },
   remove: (id: number) => req<void>(`/documents/${id}`, "DELETE"),
   search: (question: string, k = 6) => req<Hit[]>("/search", "POST", { question, k }),
-  seed: () => req<{ seeded: boolean }>("/demo/seed", "POST", {}),
+  seed: () => req<{ seeded: boolean }>("/examples/handbook", "POST", {}),
   chats: () => req<ChatRef[]>("/chats"),
   newChat: () => req<ChatRef>("/chats", "POST", {}),
   chat: (id: number) => req<{ id: number; title: string; messages: Msg[] }>(`/chats/${id}`),

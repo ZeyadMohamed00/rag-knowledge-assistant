@@ -14,7 +14,7 @@ from .embed import embed, provider
 from .ingest import chunk_page, extract_pages
 from .rag import answer, retrieve
 
-SAMPLE = Path(__file__).resolve().parent.parent / "data" / "sample-handbook.pdf"
+SAMPLE = Path(__file__).resolve().parent.parent / "data" / "engineering-handbook.pdf"
 MAX_BYTES = 4 * 1024 * 1024
 MAX_DOCS_PER_CLIENT = 10
 
@@ -101,12 +101,13 @@ def create_app():
         db.delete(d)
         db.commit()
 
-    @app.post("/demo/seed", status_code=201)
+    @app.post("/examples/handbook", status_code=201)
+    @app.post("/demo/seed", status_code=201, include_in_schema=False)
     def seed(cid: str = Depends(client), db=Depends(get_db)):
         """Load the bundled synthetic sample handbook (11 short topics, one per page) for this visitor."""
-        if db.query(D.Document).filter_by(client_id=cid, filename="sample-handbook.pdf").first():
+        if db.query(D.Document).filter_by(client_id=cid, filename="engineering-handbook.pdf").first():
             return {"seeded": False}
-        d = add_document(db, cid, "sample-handbook.pdf", SAMPLE.read_bytes())
+        d = add_document(db, cid, "engineering-handbook.pdf", SAMPLE.read_bytes())
         return {"seeded": True, "id": d.id, "pages": d.pages}
 
     @app.post("/search")
