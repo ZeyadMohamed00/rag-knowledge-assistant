@@ -1,5 +1,5 @@
 """Retrieval + answer evaluation on the 50-question reference set (eval/questions.json).
-Runs against a real PostgreSQL+pgvector (embedded via pgserver), with the default `hash` embedder and extractive answers.
+Runs against a real PostgreSQL+pgvector (embedded via pgserver), with the default `hash` embedder and extractive answers, or (EVAL_PROVIDER=gemini) Gemini embeddings (answers stay extractive in the eval).
 Metrics:
   Retrieval Recall@k : gold page (the topic page for the question) appears in the top-k retrieved chunks.
   MRR                : mean reciprocal rank of the first chunk from the gold page.
@@ -19,6 +19,9 @@ import pgserver
 srv = pgserver.get_server(tempfile.mkdtemp())
 os.environ["DATABASE_URL"] = srv.get_uri().replace("postgresql://", "postgresql+psycopg2://", 1)
 os.environ.pop("OPENAI_API_KEY", None)
+USE_GEMINI = os.environ.get("EVAL_PROVIDER") == "gemini"  # needs GEMINI_API_KEY in the environment
+if USE_GEMINI:
+    os.environ["EMBEDDING_PROVIDER"] = "gemini"  # retrieval only; answers stay extractive so the run is fast and repeatable
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import db as D
 from app.embed import _stem, _tok
@@ -60,7 +63,7 @@ with D.Session() as db:
         **{f"recall@{k}": round(hit[k] / n, 3) for k in ks},
         "mrr": round(rr / n, 3),
         "faithfulness_proxy": round(sum(faith) / len(faith), 3),
-        "embedder": "hash (lexical, 384d)",
+        "embedder": "gemini-embedding-001 (384d)" if USE_GEMINI else "hash (lexical, 384d)",
         "answerer": "extractive",
         "missed_at_5": miss,
     }

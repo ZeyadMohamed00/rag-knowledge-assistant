@@ -4,16 +4,30 @@ import re
 from sqlalchemy import select
 
 from .db import Chunk, Document
-from .embed import _stem, _tok, embed
+from .embed import _stem, _tok, embed, provider
+
+
+def _refresh_stale(db, client_id: str):
+    """Re-embed this client's chunks that were made by another provider, so retrieval compares like with like."""
+    cur = provider()
+    stale = db.execute(
+        select(Chunk).where(Chunk.client_id == client_id, Chunk.provider != cur).limit(200)
+    ).scalars().all()
+    if not stale:
+        return
+    for c, v in zip(stale, embed([c.text for c in stale], "doc")):
+        c.embedding, c.provider = v, cur
+    db.commit()
 
 
 def retrieve(db, client_id: str, question: str, k: int = 5):
-    qv = embed([question])[0]
+    _refresh_stale(db, client_id)
+    qv = embed([question], "query")[0]
     dist = Chunk.embedding.cosine_distance(qv)
     rows = db.execute(
         select(Chunk, Document.filename, dist.label("d"))
         .join(Document, Document.id == Chunk.document_id)
-        .where(Chunk.client_id == client_id)
+        .where(Chunk.client_id == client_id, Chunk.provider == provider())
         .order_by(dist)
         .limit(k)
     ).all()
@@ -92,7 +106,44 @@ def llm_answer(question: str, hits: list[dict]) -> tuple[str, list[dict]]:
     return text, cites
 
 
+def gemini_answer(question: str, hits: list[dict]) -> tuple[str, list[dict]]:
+    import httpx
+
+    ctx = "\n\n".join(
+        f"[{i + 1}] ({h['document']}, page {h['page']}) {h['text']}" for i, h in enumerate(hits)
+    )
+    r = httpx.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{os.getenv('LLM_MODEL', 'gemini-3.1-flash-lite')}:generateContent",
+        timeout=60,
+        headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]},
+        json={
+            "systemInstruction": {
+                "parts": [
+                    {
+                        "text": "Answer ONLY from the numbered context, in one to three short sentences. Cite sources like [1]. If the context does not contain the answer, say you cannot find it in the documents."
+                    }
+                ]
+            },
+            "contents": [{"role": "user", "parts": [{"text": f"Context:\n{ctx}\n\nQuestion: {question}"}]}],
+            "generationConfig": {"temperature": 0, "thinkingConfig": {"thinkingBudget": 0}},
+        },
+    )
+    r.raise_for_status()
+    text = "".join(p.get("text", "") for p in r.json()["candidates"][0]["content"]["parts"]).strip()
+    used = sorted({int(n) for n in re.findall(r"\[(\d+)\]", text) if 0 < int(n) <= len(hits)})
+    cites = [
+        {"document": hits[i - 1]["document"], "page": hits[i - 1]["page"], "snippet": hits[i - 1]["text"][:200], "n": i}
+        for i in used
+    ]
+    return text, cites
+
+
 def answer(question: str, hits: list[dict]):
+    if os.getenv("GEMINI_API_KEY") and os.getenv("LLM_PROVIDER") == "gemini":
+        try:
+            return (*gemini_answer(question, hits), "llm (gemini-3.1-flash-lite)")
+        except Exception:
+            return (*extractive_answer(question, hits), "extractive (LLM unavailable, fell back)")
     if os.getenv("OPENAI_API_KEY") and os.getenv("LLM_PROVIDER", "openai") == "openai":
         return (*llm_answer(question, hits), "llm")
     return (*extractive_answer(question, hits), "extractive (no LLM key configured)")

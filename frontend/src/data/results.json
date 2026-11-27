@@ -1,13 +1,11 @@
 {
  "questions": 50,
- "recall@1": 0.84,
- "recall@3": 0.94,
- "recall@5": 0.98,
- "mrr": 0.892,
- "faithfulness_proxy": 0.967,
- "embedder": "hash (lexical, 384d)",
+ "recall@1": 0.98,
+ "recall@3": 1.0,
+ "recall@5": 1.0,
+ "mrr": 0.987,
+ "faithfulness_proxy": 1.0,
+ "embedder": "gemini-embedding-001 (384d)",
  "answerer": "extractive",
- "missed_at_5": [
-  "What data structure gives fast key lookup?"
- ]
+ "missed_at_5": []
 }

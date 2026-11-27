@@ -4,7 +4,9 @@ Default provider `hash`: signed feature hashing of word unigrams+bigrams into 38
 It needs no model download and no API key, so it runs anywhere (including a Vercel function), but it is a
 LEXICAL embedding: it matches shared words, not paraphrases. Set EMBEDDING_PROVIDER=openai (plus OPENAI_API_KEY)
 for semantic embeddings (text-embedding-3-small, truncated to 384 dims via the `dimensions` parameter).
-Never mix providers inside one database: vectors from different providers are not comparable.
+Provider `gemini` uses gemini-embedding-001 (384 dims via outputDimensionality, L2-normalised) with separate
+document/query task types. Vectors from different providers are not comparable: every chunk stores the provider that
+made it, retrieval only compares like with like, and stale chunks are re-embedded on first use.
 """
 
 import hashlib
@@ -45,7 +47,42 @@ def provider() -> str:
     return os.getenv("EMBEDDING_PROVIDER", "hash")
 
 
-def embed(texts: list[str]) -> list[list[float]]:
+def _gemini_embed(texts: list[str], kind: str) -> list[list[float]]:
+    import httpx
+
+    key = os.environ["GEMINI_API_KEY"]
+    task = "RETRIEVAL_QUERY" if kind == "query" else "RETRIEVAL_DOCUMENT"
+    out: list[list[float]] = []
+    for i in range(0, len(texts), 50):
+        batch = texts[i : i + 50]
+        body = {
+            "requests": [
+                {
+                    "model": "models/gemini-embedding-001",
+                    "content": {"parts": [{"text": t}]},
+                    "taskType": task,
+                    "outputDimensionality": DIM,
+                }
+                for t in batch
+            ]
+        }
+        r = httpx.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents",
+            timeout=60,
+            headers={"x-goog-api-key": key},
+            json=body,
+        )
+        r.raise_for_status()
+        for item in r.json()["embeddings"]:
+            v = np.array(item["values"], dtype=np.float64)
+            n = np.linalg.norm(v)
+            out.append((v / n if n else v).tolist())
+    return out
+
+
+def embed(texts: list[str], kind: str = "doc") -> list[list[float]]:
+    if provider() == "gemini":
+        return _gemini_embed(texts, kind)
     if provider() == "openai":
         import httpx
 

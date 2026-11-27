@@ -29,29 +29,29 @@ flowchart LR
 ## What it does
 1. **Ingest**: extract text per page (pypdf for PDF, python-docx for DOCX), split into ~500-character sentence chunks with 1-sentence overlap, embed each chunk, store in `rag_chunks` (pgvector `vector(384)`).
 2. **Retrieve**: embed the question, cosine-distance search in pgvector, filtered to the visitor's own documents.
-3. **Answer**: with `OPENAI_API_KEY` set, an LLM answers only from the numbered context and cites `[n]`. Without a key, an **extractive** answerer returns the most relevant sentences with their citations. The UI shows which mode produced each answer.
+3. **Answer**: with `GEMINI_API_KEY` + `LLM_PROVIDER=gemini` (live deployment) a Gemini model answers only from the numbered context and cites `[n]`, and says so when the documents do not contain the answer. `OPENAI_API_KEY` works the same way. Without a key, an **extractive** answerer returns the most relevant sentences with their citations. The UI shows which mode produced each answer.
 4. **Saved chats**: messages and citations are stored per visitor (anonymous client id kept in the browser, no accounts).
 
 ## Stack
 FastAPI, SQLAlchemy, PostgreSQL + pgvector, React + TypeScript (Vite), pypdf, python-docx, pytest + Vitest. Docker files are provided. LlamaIndex/LangChain are not used: the pipeline is ~150 lines of plain code so every step is visible and explainable.
 
 ## Honest status
-- **Embeddings are lexical by default** (`EMBEDDING_PROVIDER=hash`: hashed word and bigram features, 384 dims). It runs anywhere with no model download, but it matches shared words, not paraphrases. Semantic embeddings are implemented behind `EMBEDDING_PROVIDER=openai` and have **not been run** (no API key here). Never mix providers in one database.
-- **The LLM path is written but not run** (no API key here). The deployed demo uses the extractive answerer.
+- **Embeddings:** the live deployment uses `gemini-embedding-001` (384 dims, separate document/query task types). The default without a key is a lexical hash embedder that matches shared words, not paraphrases. Every chunk stores which provider embedded it; retrieval only compares like with like and stale chunks are re-embedded on first use.
+- **LLM answers** run on `gemini-3.1-flash-lite` on the free tier (rate limits apply; if the API is unavailable the app falls back to extractive answers and labels them).
 - **DOCX pages are approximate** (a new "page" every ~3000 characters) because .docx has no fixed pagination. PDFs use real pages. Scanned PDFs need OCR, which is not supported.
-- Visitor limits: 10 documents each, 4 MB per file. The live demo shares a free Neon database (tables prefixed `rag_`).
+- Visitor limits: 10 documents each, 4 MB per file. The live app shares a free Neon database (tables prefixed `rag_`).
 - Docker files are not verified (no Docker in the build environment).
 
 ## Evaluation (real run, `python eval/run_eval.py`)
-50 reference questions over the 11-page sample handbook; gold = the page holding the answer. Embedder: hash. Answerer: extractive. Results saved in `eval/results.json`.
+50 reference questions over the 11-page included engineering handbook; gold = the page holding the answer. Embedder: Gemini (gemini-embedding-001). Answers are extractive in the eval. Results saved in `eval/results.json`.
 
 | Metric | Value |
 |---|---|
-| Retrieval Recall@1 | 0.84 |
-| Retrieval Recall@3 | 0.94 |
-| Retrieval Recall@5 | 0.98 |
-| MRR | 0.892 |
-| Faithfulness (lexical proxy) | 0.967 |
+| Retrieval Recall@1 | 0.98 (hash embedder: 0.84) |
+| Retrieval Recall@3 | 1.00 (hash: 0.94) |
+| Retrieval Recall@5 | 1.00 (hash: 0.98) |
+| MRR | 0.987 (hash: 0.892) |
+| Faithfulness (lexical proxy) | 1.00 (hash: 0.967) |
 
 Caveats: the questions were written by the project author from the same documents, so this is not an independent benchmark. **Faithfulness here is a lexical proxy** (share of answer sentences whose words appear in the retrieved context), not an LLM judge. An extractive answerer scores high on it by construction, so it only becomes informative with the LLM path. The one miss at k=5 is a paraphrase ("fast key lookup" vs "average constant time lookup"), the expected weakness of lexical embeddings.
 
@@ -77,7 +77,7 @@ Tests: 7 backend (real Postgres+pgvector) and 2 frontend pass.
 ## Accounts and persistence
 - **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a demo-only secret is derived from `DATABASE_URL` and a warning is logged.
 - **Persistence:** a signed-in user's data is stored in PostgreSQL under their own account key (`user:<id>`) and is only reachable with their token. New accounts start empty.
-- **Guest demo:** without logging in, "Continue as guest" uses an anonymous browser id with clearly labeled sample data. Guest ids can never collide with or impersonate an account.
+- **Guest session:** without logging in, "Explore without signing up" uses an anonymous browser id. Guest ids can never collide with or impersonate an account.
 - Tests: `tests/test_auth.py` (register, login, wrong or weak password, duplicate email, bad token, isolation) and `frontend/src/auth.test.tsx`.
 - Login is throttled: 5 wrong passwords per email in 5 minutes returns `429` with `Retry-After` (`LOGIN_MAX_FAILS`, `LOGIN_FAIL_WINDOW_S`). The counter lives in process memory, so on several instances or serverless functions each one counts separately; use a shared limiter for hard guarantees. With `APP_ENV=production` a missing `JWT_SECRET` stops the app at startup instead of falling back.
 - Not built: email verification, password reset and refresh tokens (listed as next steps).

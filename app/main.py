@@ -47,7 +47,7 @@ def add_document(db, client_id: str, filename: str, data: bytes) -> D.Document:
     doc = D.Document(client_id=client_id, filename=filename, pages=len(pages))
     vecs = embed([c for _, c in pieces])
     doc.chunks = [
-        D.Chunk(client_id=client_id, page=pg, text=t, embedding=v)
+        D.Chunk(client_id=client_id, page=pg, text=t, embedding=v, provider=provider())
         for (pg, t), v in zip(pieces, vecs)
     ]
     db.add(doc)
@@ -73,7 +73,7 @@ def create_app():
         return {
             "status": "ok",
             "embedding_provider": provider(),
-            "llm": bool(os.getenv("OPENAI_API_KEY")),
+            "llm": bool(os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY")),
         }
 
     @app.get("/documents")

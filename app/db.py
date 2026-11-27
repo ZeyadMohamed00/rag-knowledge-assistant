@@ -34,6 +34,7 @@ class Chunk(Base):
     page: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
     embedding = mapped_column(Vector(DIM))
+    provider: Mapped[str] = mapped_column(String(20), default="hash", server_default="hash")
     document: Mapped[Document] = relationship(back_populates="chunks", overlaps="chunks")
 
 
@@ -62,3 +63,5 @@ def init():
     with engine.begin() as c:
         c.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     Base.metadata.create_all(engine)
+    with engine.begin() as c:
+        c.execute(text("ALTER TABLE rag_chunks ADD COLUMN IF NOT EXISTS provider varchar(20) DEFAULT 'hash'"))
