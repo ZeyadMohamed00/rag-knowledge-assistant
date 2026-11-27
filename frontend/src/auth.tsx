@@ -80,7 +80,7 @@ export function AuthGate({ title, children }: { title: string; children: ReactNo
   return (
     <div className="lp">
       <section className="lp-l">
-        <div className="brand"><span className="logo">K</span>{title}</div>
+        <div className="brand"><span className="logo"><img src="/icon.svg" alt="" /></span>{title}</div>
         <div>
           <h1>Ask your documents. <em>See the page.</em></h1>
           <p className="lede">Upload PDFs, Word files or text. Every answer cites the document and page it came from, so you can check it in one click.</p>
