@@ -62,12 +62,12 @@ docker compose up --build            # web on :8000 (API) + Postgres with pgvect
 pip install -r requirements.txt pgserver reportlab
 DATABASE_URL=postgresql+psycopg2://user:pw@host/db uvicorn app.main:app
 cd frontend && npm i && npm run dev
-pytest                               # uses an embedded real Postgres+pgvector (pgserver)
+pytest                               # includes empty, oversized, corrupt-file and cross-client tests; uses an embedded real Postgres+pgvector (pgserver)
 python eval/run_eval.py
 ```
 Tests: 7 backend (real Postgres+pgvector) and 2 frontend pass.
 
-## 5 things to understand to explain this project
+## Key concepts
 1. **RAG** = retrieve relevant chunks first, then answer only from them, so answers can be checked against sources.
 2. **Chunking trade-off**: small chunks are precise but lose context, large ones keep context but add noise. I use ~500 chars with sentence overlap so facts are not cut in half.
 3. **Embeddings + pgvector**: text becomes a vector; similar meaning (or, here, similar words) means a small cosine distance; Postgres does the nearest-neighbour search.
@@ -75,8 +75,9 @@ Tests: 7 backend (real Postgres+pgvector) and 2 frontend pass.
 5. **Evaluation honesty**: Recall@k and MRR measure retrieval; faithfulness needs a judge. My default setup is lexical and extractive, and the numbers above say exactly that.
 
 ## Accounts and persistence
-- **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a secret is derived from `DATABASE_URL`.
+- **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a demo-only secret is derived from `DATABASE_URL` and a warning is logged.
 - **Persistence:** a signed-in user's data is stored in PostgreSQL under their own account key (`user:<id>`) and is only reachable with their token. New accounts start empty.
 - **Guest demo:** without logging in, "Continue as guest" uses an anonymous browser id with clearly labeled sample data. Guest ids can never collide with or impersonate an account.
 - Tests: `tests/test_auth.py` (register, login, wrong or weak password, duplicate email, bad token, isolation) and `frontend/src/auth.test.tsx`.
-- Not built: email verification, password reset, rate limiting and refresh tokens (listed as next steps).
+- Login is throttled: 5 wrong passwords per email in 5 minutes returns `429` with `Retry-After` (`LOGIN_MAX_FAILS`, `LOGIN_FAIL_WINDOW_S`). The counter lives in process memory, so on several instances or serverless functions each one counts separately; use a shared limiter for hard guarantees. With `APP_ENV=production` a missing `JWT_SECRET` stops the app at startup instead of falling back.
+- Not built: email verification, password reset and refresh tokens (listed as next steps).

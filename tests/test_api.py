@@ -103,3 +103,33 @@ def test_answer_has_no_duplicate_sentences():
     ).json()["answer"]
     sents = [s for s in a.replace("[1]", "").split(". ") if s.strip()]
     assert len(sents) == len(set(sents))
+
+
+def _up(name, data, headers=H):
+    return c.post("/documents", files={"file": (name, io.BytesIO(data))}, headers=headers)
+
+
+def test_empty_and_whitespace_upload_rejected():
+    assert _up("empty.txt", b"").status_code == 422
+    assert _up("blank.txt", b"   \n\n  ").status_code == 422
+
+
+def test_oversized_upload_rejected_with_413():
+    assert _up("big.txt", b"a " * (2 * 1024 * 1024 + 10)).status_code == 413
+
+
+def test_corrupt_pdf_is_a_clean_error_not_a_500():
+    r = _up("broken.pdf", b"%PDF-1.4 this is not really a pdf")
+    assert r.status_code in (415, 422)
+
+
+def test_other_clients_cannot_delete_or_see_my_document():
+    mine, other = {"X-Client-Id": "owner-client-001"}, {"X-Client-Id": "other-client-002"}
+    r = _up("private.txt", b"The vault code policy is rotated every quarter by the security team.", mine)
+    assert r.status_code == 201
+    did = r.json()["id"]
+    assert c.delete(f"/documents/{did}", headers=other).status_code == 404
+    assert all(d["id"] != did for d in c.get("/documents", headers=other).json())
+    hits = c.post("/search", json={"question": "vault code policy"}, headers=other).json()
+    assert "private.txt" not in str(hits)
+    assert c.delete(f"/documents/{did}", headers=mine).status_code == 204
